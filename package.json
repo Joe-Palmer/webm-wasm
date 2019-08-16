@@ -17,7 +17,7 @@
   },
   "napa": {
     "libwebm": "webmproject/libwebm#libwebm-1.0.0.27",
-    "libvpx": "webmproject/libvpx#v1.7.0",
+    "libvpx": "webmproject/libvpx#v1.8.1",
     "libyuv": "git+https://chromium.googlesource.com/libyuv/libyuv"
   },
   "devDependencies": {

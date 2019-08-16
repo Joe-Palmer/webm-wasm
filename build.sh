@@ -38,7 +38,6 @@ test -n "$SKIP_LIBVPX" || (
   mkdir build-vpx; cd build-vpx
   emconfigure ../node_modules/libvpx/configure \
     --disable-vp9-decoder \
-    --disable-vp9-encoder \
     --disable-vp8-decoder \
     --target=generic-gnu
   emmake make

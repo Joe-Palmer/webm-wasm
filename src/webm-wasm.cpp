@@ -52,7 +52,7 @@ class WebmEncoder {
     vpx_codec_ctx_t ctx;
     unsigned int frame_cnt = 0;
     vpx_codec_enc_cfg_t cfg;
-    vpx_codec_iface_t* iface = vpx_codec_vp8_cx();
+    vpx_codec_iface_t* iface = vpx_codec_vp9_cx();
     vpx_image_t *img;
     std::string last_error;
     IMkvWriter *mkv_writer;
@@ -86,6 +86,11 @@ WebmEncoder::~WebmEncoder() {
 bool WebmEncoder::addRGBAFrame(std::string rgba) {
   RGBAtoVPXImage((const uint8_t*) rgba.c_str());
   if(!EncodeFrame(img)) {
+  last_error = "Could not encode frame";
+    return false;
+  }
+  if(!EncodeFrame(NULL)) {
+    last_error = "Could not flush frame";
     return false;
   }
   if(realtime) {
@@ -172,6 +177,8 @@ bool WebmEncoder::InitCodec(int timebase_num, int timebase_den, unsigned int wid
   cfg.g_timebase.den = timebase_den;
   cfg.g_w = width;
   cfg.g_h = height;
+  cfg.g_threads = 1;
+  cfg.g_lag_in_frames = 0;
   cfg.rc_target_bitrate = bitrate;
 
   err = vpx_codec_enc_init(
@@ -179,6 +186,26 @@ bool WebmEncoder::InitCodec(int timebase_num, int timebase_den, unsigned int wid
     iface,
     &cfg,
     0 /* flags */
+  );
+  if(err != VPX_CODEC_OK) {
+    last_error = std::string(vpx_codec_err_to_string(err));
+    return false;
+  }
+  // Set lossless VP9
+  err = vpx_codec_control_(
+    &ctx,
+    VP9E_SET_LOSSLESS,
+    1
+  );
+  if(err != VPX_CODEC_OK) {
+    last_error = std::string(vpx_codec_err_to_string(err));
+    return false;
+  }
+  // Set encoding speed
+  err = vpx_codec_control_(
+    &ctx,
+    VP8E_SET_CPUUSED,
+    9
   );
   if(err != VPX_CODEC_OK) {
     last_error = std::string(vpx_codec_err_to_string(err));
@@ -202,6 +229,8 @@ bool WebmEncoder::InitMkvWriter(bool klive, val cb) {
     last_error = "Could not add video track";
     return false;
   }
+  Track* const vid_track = main_segment->GetTrackByNumber(1);
+  vid_track->set_codec_id("V_VP9");
   main_segment->set_mode(klive ? Segment::Mode::kLive : Segment::Mode::kFile);
   auto info = main_segment->GetSegmentInfo();
   // Branding, yo
